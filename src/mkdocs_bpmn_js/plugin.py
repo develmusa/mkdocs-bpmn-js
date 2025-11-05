@@ -38,7 +38,10 @@ class BPMNPlugin(BasePlugin):
             "viewer_css",
             config_options.Type(str, default="assets/bpmn-js.css"),
         ),
-        ("viewer_initialize", config_options.Type(bool, default=True)),
+        (
+            "viewer_js_initialize",
+            config_options.Type(str, default="assets/viewer.js"),
+        ),
         (
             "image_command",
             config_options.Type(
@@ -164,38 +167,10 @@ class BPMNPlugin(BasePlugin):
         if self.config["render"] == "viewer" and self.config["viewer_js"]:
             script_viewer = html.new_tag("script", src=self.config["viewer_js"])
             html.body.append(script_viewer)
-
-        if self.config["render"] == "viewer" and self.config["viewer_initialize"]:
-            script = html.new_tag("script", type="text/javascript")
-            script.string = """
-                document.addEventListener('DOMContentLoaded', async function() {
-                    try {
-                        const elements = document.querySelectorAll('.%s');
-                        for (const element of elements) {
-                            const src = element.getAttribute('data-src');
-                            const xml = await fetch(src)
-                                .then(response => response.text())
-                                .catch(err => console.error('Error fetching BPMN XML:', err));
-
-                            const options = {}
-                            if (element.hasAttribute('data-width')) {
-                                options.width = element.getAttribute('data-width');
-                            }
-                            if (element.hasAttribute('data-height')) {
-                                options.height = element.getAttribute('data-height');
-                            }
-
-                            const viewer = new BpmnJS({ container: element, ...options });
-                            await viewer.importXML(xml);
-                            viewer.get('canvas').zoom('fit-viewport');
-                        }
-                    } catch (err) {
-                        console.error('Error rendering BPMN diagram:', err);
-                    }
-                });
-            """ % (self.config["class"])
-
-            html.body.append(script)
+        
+        if self.config["render"] == "viewer" and self.config["viewer_js_initialize"]:
+            script_viewer_initialize = html.new_tag("script", src=self.config["viewer_js_initialize"])
+            html.body.append(script_viewer_initialize)
 
         return str(html)
 
@@ -203,11 +178,18 @@ class BPMNPlugin(BasePlugin):
         if self.config["render"] == "viewer":
             css_output_path = Path(config["site_dir"]) / self.config["viewer_css"]
             js_output_path = Path(config["site_dir"]) / self.config["viewer_js"]
+            js_initialize_output_path = Path(config["site_dir"]) / self.config["viewer_js_initialize"]
+
             css_output_path.parent.mkdir(parents=True, exist_ok=True)
             js_output_path.parent.mkdir(parents=True, exist_ok=True)
+            js_initialize_output_path.parent.mkdir(parents=True, exist_ok=True)
+            
             copy_file(ASSETS_DIR / "bpmn-js.css", css_output_path)
             copy_file(
                 ASSETS_DIR / "bpmn-navigated-viewer.production.min.js", js_output_path
+            )
+            copy_file(
+                ASSETS_DIR / "viewer.js", js_initialize_output_path
             )
 
         if not self.config["render"] == "image" or not self.render_queue:
