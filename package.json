@@ -7,7 +7,7 @@
     "update-assets": "node copy_assets.js"
   },
   "dependencies": {
-    "bpmn-js": "^18.8.0",
+    "bpmn-js": "^18.10.1",
     "fs-extra": "^11.2.0"
   }
 }
